@@ -15,7 +15,7 @@ from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, HttpUrl, validator
 import uuid
 import tempfile
 
@@ -38,7 +38,19 @@ async def health_check():
 
 class ArticleRequest(BaseModel):
     url: str
-    email: EmailStr
+    email: str
+
+    @validator('url')
+    def validate_url(cls, v):
+        if not v.startswith(('http://', 'https://')):
+            raise ValueError('URL must start with http:// or https://')
+        return v
+
+    @validator('email')
+    def validate_email(cls, v):
+        if '@' not in v or '.' not in v:
+            raise ValueError('Invalid email format')
+        return v
 
 def create_pdf(content, output_path):
     doc = SimpleDocTemplate(output_path, pagesize=letter)
